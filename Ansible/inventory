@@ -1,2 +1,2 @@
 [jenkins]
-176.34.155.210 ansible_ssh_private_key_file=~/Documents/Barclays/ticket-app-key.pem
+176.34.155.210 ansible_ssh_private_key_file=/mnt/c/Users/Holly/Documents/Barclays/ticket-app-key.pem

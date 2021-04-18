@@ -1,0 +1,2 @@
+[jenkins]
+%IP% ansible_ssh_private_key_file=/mnt/c/Users/Holly/Documents/Barclays/ticket-app-key.pem
