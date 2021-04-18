@@ -1,0 +1,9 @@
+Terraform/.terraform
+Terraform/.terraform.*
+*.sh
+*.tfstate
+*.tfstate.backup
+
+Kubernetes/aws-db-secrets.yaml
+Kubernetes/cluster.yaml
+Ansible/*.txt
