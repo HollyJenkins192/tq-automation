@@ -1,0 +1,99 @@
+---
+# run from terraform directory
+- hosts: all
+  become: true
+  tasks:
+  - name: Update all packages to the latest version
+    apt:
+      upgrade: yes
+      update_cache: yes
+  - name: install jre
+    apt:
+      name: default-jre
+      install_recommends: yes
+  - name: install jdk
+    apt:
+      name: default-jdk
+      install_recommends: yes
+  - name: install docker
+    apt:
+      name: docker.io
+      install_recommends: yes
+  - name: change docker.sock owner to jenkins
+    file:
+      path: /var/run/docker.sock
+  - name: create docker group
+    ansible.builtin.group:
+      name: docker
+      state: present
+  - name: usermod -aG docker jenkins
+    ansible.builtin.user:
+      name: jenkins
+      group: docker
+      append: true
+  - name: restart docker
+    service:
+      name: docker
+      state: restarted
+  - name: aws creds
+    copy:
+      src: ~/.aws/credentials
+      dest: ~/.aws/credentials
+  - name: Unarchive a remote aws cli installer
+    unarchive:
+      src: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+      dest: /tmp/awscliv2
+      remote_src: yes
+  - name: install aws cli
+    command: . ./aws/install
+  - name: Create a directory if it does not exist
+    file:
+      path: $HOME/bin
+      state: directory
+  - name: unarchive kubectl
+    unarchive:
+      src: https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
+      dest: $HOME/bin/kubectl
+      remote_src: yes
+  - name: make kubectl executable
+    file:
+      path: $HOME/bin/kubectl
+      mode: "u+x,g+x,o+x"
+  - name: upadating path
+    shell: export PATH=$PATH:$HOME/bin
+  - name: run create cluster script
+    script: . ./cluster-create-script.sh
+  - name: create eks cluster
+    command: eksctl create cluster --name=ticket-app-test --region=eu-west-1 --managed --nodegroup-name=cluster-nodes --nodes=2 --nodes-min=2 --nodes-max=3 --node-type=t2.small --with-oidc --ssh-access --ssh-public-key ticket-app-key --vpc-private-subnets={{privsub}},{{privsub2}} --vpc-public-subnets={{pubsub}},{{pubsub2}}
+  - name: kubectl copy yamls
+    copy:
+      src: ../Kubernetes
+      dest: /tmp/kubernetes
+  - name: apply lb
+    command: kubectl apply -f /tmp/kubernetes/podlb.yaml
+  - name: apply secrets
+    command: kubectl apply -f /tmp/kubernetes/aws-db-secrets.yaml
+  - name: apply backend ip
+    command: kubectl apply -f /tmp/kubernetes/backend-ip.yaml
+  - name: apply frontend ip
+    command: kubectl apply -f /tmp/kubernetes/frontend-ip.yaml
+  - name: apply configmap
+    command: kubectl apply -f /tmp/kubernetes/config-map.yaml
+  - name: apply nginx
+    command: kubectl apply -f /tmp/kubernetes/deploy-nginx.yaml
+  - name: inject endpoint
+    replace:
+      path: /tmp/kubernetes/deploy-backend.yaml
+      regexp: '%RDS_ENDPOINT%'
+      replace: "{{rdsendpoint}}"
+      backup: yes
+  - name: apply backend
+    command: kubectl apply -f /tmp/kubernetes/deploy-backend.yaml
+  - name: apply frontend
+    command: kubectl apply -f /tmp/kubernetes/deploy-frontend.yaml
+  - name: cat file
+    shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+    register: cat_content_file
+  - name: echo file
+    debug:
+      msg: "{{ cat_content_file.stdout }}"

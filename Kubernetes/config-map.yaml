@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  default.conf: |
+    server {
+      listen 80;
+
+      location /api {
+          proxy_pass http://5.64.98.246:8080/api;
+      }
+
+      location / {
+          proxy_pass http://frontendip:80/;
+      }
+    }

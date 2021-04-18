@@ -1,0 +1,2 @@
+[jenkins]
+176.34.155.210 ansible_ssh_private_key_file=~/Documents/Barclays/ticket-app-key.pem
