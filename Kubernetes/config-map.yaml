@@ -8,7 +8,7 @@ data:
       listen 80;
 
       location /api {
-          proxy_pass http://5.64.98.246:8080/api;
+          proxy_pass http://backendip:8080/api;
       }
 
       location / {
